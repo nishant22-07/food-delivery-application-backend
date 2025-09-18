@@ -1,5 +1,9 @@
 package com.nishant.foodiesapi.service;
 
+import com.nishant.foodiesapi.IO.FoodRequest;
+import com.nishant.foodiesapi.IO.FoodResponce;
+import com.nishant.foodiesapi.entity.FoodEntity;
+import com.nishant.foodiesapi.repository.FoodRepository;
 import jakarta.validation.executable.ValidateOnExecution;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +25,8 @@ import java.util.UUID;
 public class FoodServiceImpl implements FoodService{
 
     private final S3Client s3Client;
+
+    private final FoodRepository foodRepository;
 
     @Value("${aws.s3.bucketname}")
     private String bucketName;
@@ -47,6 +53,37 @@ public class FoodServiceImpl implements FoodService{
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"An error occured while uploading the file");
 
         }
+    }
+
+    @Override
+    public FoodResponce addFood(FoodRequest request, MultipartFile file) {
+        FoodEntity newFoodEntity = convertToEntity(request);
+        String imageUrl = uploadFile(file);
+        newFoodEntity.setImageUrl(imageUrl);
+        newFoodEntity = foodRepository.save(newFoodEntity);
+        return convertToResponce(newFoodEntity);
+
+    }
+
+    private FoodEntity convertToEntity(FoodRequest request){
+        return FoodEntity.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .category(request.getCategory())
+                .price(request.getPrice())
+                .build();
+    }
+
+    private FoodResponce convertToResponce(FoodEntity entity){
+        return FoodResponce.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .description(entity.getDescription())
+                .category(entity.getCategory())
+                .price(entity.getPrice())
+                .imageUrl(entity.getImageUrl())
+                .build();
+
     }
 }
 
